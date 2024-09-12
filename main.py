@@ -3,7 +3,7 @@ import sys
 import requests # type: ignore
 import threading
 import queue
-
+import random 
 def print_header():
     print(""" ______   ___   _______  _______  _______  __   __  _______  ______   
 |      | |   | |       ||       ||  _    ||  | |  ||       ||    _ |  
@@ -24,6 +24,7 @@ def command_line_arguments():
     parser.add_argument('-w', '--wordlist')      # option that takes a value
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('-r','--recursion',action='store_true')
+    parser.add_argument('-p','--proxy',action='store_true')
     parser.add_argument('-fs','--filter-size',nargs='+',type=int)
     parser.add_argument('-fc','--filter-code',nargs='+',type=int)
     parser.add_argument('-t','--threads',type=int,default=10)
@@ -41,7 +42,7 @@ def print_args(args):
     print('Size Filters: ' + ', '.join(map(str, args.filter_size)) if args.filter_size is not None else 'Size Filters: None')
     print('Response Code Filters: ' + ', '.join(map(str, args.filter_code)) if args.filter_code is not None else 'Response Code Filters: None')
     print("――――――――――――――――――――――――――――――――――――――――――――――――")
-    print('\n')
+
 
 
 def import_wordlist(text_file):
@@ -85,15 +86,9 @@ def send_request(url):#add try - except
 
 
 def enumeration(address,args):
-
-    
-
-
+    proxy_list = import_wordlist("valid_proxies.txt")
     output_content = True
     printer = Printer()
-    proxies = {
-        'https': 'https://212.126.5.246:42344'
-    }
 
     while not word_queue.empty():
         try:
@@ -103,7 +98,14 @@ def enumeration(address,args):
         
         # Test the word (replace with actual URL and HTTP request logic)
         url = f"{address}/{word}"
-        response = requests.get(url,allow_redirects=False)
+        proxies = {"http": random.choice(proxy_list), "https": random.choice(proxy_list)} if args.proxy else None
+
+        try:
+            response = requests.get(url, allow_redirects=False, proxies=proxies)
+        except:
+            continue
+
+
         
         #Filters
         if args.filter_size is not None and args.filter_size == len(response.content):
@@ -142,10 +144,9 @@ def main():
     print_args(args)
     
 
-    
     #enumeration(args.wordlist,args.URL,args.recursion)
     wordlist = import_wordlist(args.wordlist)
-
+  
 
     num_threads = args.threads
     threads = []
